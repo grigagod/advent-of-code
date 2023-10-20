@@ -4,8 +4,8 @@ using Profile
 using PProf
 
 # Collect a profile
-Profile.Allocs.clear()
-Profile.Allocs.@profile peakflops()
+
+
 
 """
     readgraph(file)
@@ -32,10 +32,11 @@ function readgraph(file)
 end
 
 wise_enqueue!(queue,cost,node,mask=2^node) = queue[(node,mask)] = cost[node,mask]
+begin
 
-function Base.sizehint!(pq::PriorityQueue,n)
+function Base.sizehint!(pq::PriorityQueue, n)
     sizehint!(pq.xs, n)
-    sizehint!(pq.index, n)
+    sizehint!(pq.index, 3n)
 end
 
 for (_path, filler, order, comparator, aggregator) in (
@@ -49,16 +50,15 @@ for (_path, filler, order, comparator, aggregator) in (
             n = size(weights, 1)
             cost = OffsetMatrix(fill($filler, n, 2^n), OffsetArrays.Origin(0))
             p_queue = PriorityQueue{Tuple{Int,Int},Float64}($order)
-            sizehint!(p_queue, sizeof(cost))
+            sizehint!(p_queue, 16sizeof(cost))
             for node in 0:n-1
                 cost[node, 2^node] = 0
                 wise_enqueue!(p_queue, cost, node)
             end
-            visited = falses(n)
             while !isempty(p_queue)
                 current, mask = dequeue!(p_queue)
-                visited.chunks[1] = mask
-                for child in (0:n-1)[.!visited]
+                for child in 0:n-1
+                    2^child & mask != 0 && continue
                     add = weights[child, current]
                     if $comparator(cost[child, mask | 2^child], cost[current, mask] + add)
                         cost[child, mask | 2^child] = cost[current, mask] + add
@@ -72,10 +72,9 @@ for (_path, filler, order, comparator, aggregator) in (
 end
 
 main = min_path ∘ readgraph
-
-GC.enable(false)
-GC.gc()
-
 main("9in.txt")
 
+Profile.Allocs.clear()
+Profile.Allocs.@profile sample_rate=1 main("9in.txt")
 PProf.Allocs.pprof()
+end
