@@ -40,7 +40,7 @@ for (_path, filler, comparator, aggregator) in (
         function $_path(weights)
             n = size(weights, 1)
             ht = Dict{Node,Float64}()
-            v = Vector{Node}()
+            v = Node[]
             alloc_szie = n*2^(n-1)
             sizehint!(v, alloc_szie)
             sizehint!(ht, alloc_szie)
