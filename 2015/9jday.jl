@@ -41,7 +41,7 @@ for (_path, filler, comparator, aggregator) in (
             n = size(weights, 1)
             ht = Dict{Node,Float64}()
             v = Vector{Node}()
-            alloc_szie = 2^(n+2)
+            alloc_szie = n*2^(n-1)
             sizehint!(v, alloc_szie)
             sizehint!(ht, alloc_szie)
             for node in 0:n-1
@@ -63,14 +63,7 @@ for (_path, filler, comparator, aggregator) in (
                     end
                 end
             end
-            cost = $filler
-            for node in @view(v[end-7:end])
-                newcost = ht[node]
-                if $comparator(newcost, cost)
-                    cost = newcost
-                end
-            end
-            cost
+            $aggregator(ht[node] for node in @view(v[end-n+1:end]))
         end
     end
 end
