@@ -1,11 +1,6 @@
 using DataStructures
-using OffsetArrays
 using Profile
 using PProf
-
-# Collect a profile
-
-
 
 """
     readgraph(file)
@@ -31,50 +26,61 @@ function readgraph(file)
     weights
 end
 
-wise_enqueue!(queue,cost,node,mask=2^node) = queue[(node,mask)] = cost[node,mask]
-begin
+weights = readgraph("2015/9in.txt")
 
-function Base.sizehint!(pq::PriorityQueue, n)
-    sizehint!(pq.xs, n)
-    sizehint!(pq.index, 3n)
+struct Node
+    current::Int
+    visited::Int
 end
 
-for (_path, filler, order, comparator, aggregator) in (
-    (:min_path, Inf, Base.Order.Forward, >, minimum),
-    (:max_path, -Inf, Base.Order.Reverse, <, maximum)
+for (_path, filler, comparator, aggregator) in (
+    (:max_path,-Inf, >, maximum),
+    (:min_path, Inf, <, minimum)
 )
     @eval begin
-        $_path(weights::Matrix) = $_path(OffsetMatrix(weights, OffsetArrays.Origin(0)))
-
-        @inbounds function $_path(weights::OffsetMatrix)
+        function $_path(weights)
             n = size(weights, 1)
-            cost = OffsetMatrix(fill($filler, n, 2^n), OffsetArrays.Origin(0))
-            p_queue = PriorityQueue{Tuple{Int,Int},Float64}($order)
-            sizehint!(p_queue, 16sizeof(cost))
+            ht = Dict{Node,Float64}()
+            v = Vector{Node}()
+            alloc_szie = 2^(n+2)
+            sizehint!(v, alloc_szie)
+            sizehint!(ht, alloc_szie)
             for node in 0:n-1
-                cost[node, 2^node] = 0
-                wise_enqueue!(p_queue, cost, node)
+                newnode = Node(node, 2^node)
+                ht[newnode] = 0
+                push!(v, newnode)
             end
-            while !isempty(p_queue)
-                current, mask = dequeue!(p_queue)
+            cnt = 0
+            for node in v
+                cnt += 1
                 for child in 0:n-1
-                    2^child & mask != 0 && continue
-                    add = weights[child, current]
-                    if $comparator(cost[child, mask | 2^child], cost[current, mask] + add)
-                        cost[child, mask | 2^child] = cost[current, mask] + add
-                        wise_enqueue!(p_queue, cost, child, mask | 2^child)
+                    2^child & node.visited != 0 && continue
+                    newcost = ht[node] + weights[child+1, node.current+1]
+                    newnode = Node(child, node.visited | 2^child)
+                    oldcost = get(ht, newnode, $filler)
+                    if $comparator(newcost, oldcost)
+                        ht[newnode] = newcost
+                        oldcost == $filler && push!(v, newnode)
                     end
-                end 
+                end
             end
-            @views $aggregator(cost[:,end])
+            cost = $filler
+            for node in @view(v[end-7:end])
+                newcost = ht[node]
+                if $comparator(newcost, cost)
+                    cost = newcost
+                end
+            end
+            cost
         end
     end
 end
 
-main = min_path ∘ readgraph
-main("9in.txt")
+min_path(weights)
+max_path(weights)
 
-Profile.Allocs.clear()
-Profile.Allocs.@profile sample_rate=1 main("9in.txt")
-PProf.Allocs.pprof()
+begin
+    Profile.Allocs.clear()
+    Profile.Allocs.@profile sample_rate=1 min_path(weights)
+    PProf.Allocs.pprof()
 end
