@@ -2,26 +2,25 @@ using DataStructures
 using Profile
 using PProf
 
-"""
-    readgraph(file)
-reads input and returns matrix that represents graph
-"""
 function readgraph(file)
-    edges = [split(line)[[1,3,5]] for line in eachline(file)]
-    nlines = length(edges)
-    verteces = SubString{String}[]
-    sizehint!(verteces, 2nlines)
-    for edge in edges
-        append!(verteces, @view edge[[1,2]])
+    vertices = Dict{SubString{String},Int}()
+    edges = Dict{Tuple{Int,Int},Float64}()
+    raw = read(file, String)
+    nlines = count('\n', raw)
+    lines = eachsplit(raw, '\n')
+    sizehint!(vertices, nlines)
+    sizehint!(edges, nlines)
+    for line in lines
+        from, _, to, _, weight = eachsplit(line)
+        haskey(vertices, from) || setindex!(vertices, length(vertices)+1, from)
+        haskey(vertices, to) || setindex!(vertices, length(vertices)+1, to)
+        edges[(vertices[from], vertices[to])] = parse(Float64, weight)
     end
-    unique!(verteces)
-    n = length(verteces)
-    weights = fill(Inf,n,n)
-    places = Dict(verteces .=> 1:n)
-
-    for edge in edges
-        from,to,dist= places[edge[1]], places[edge[2]], parse(Float64,edge[3])
-        weights[from,to] = weights[to, from] = dist
+    n = length(vertices)
+    weights = zeros(n,n)
+    for (edge, weight) in edges
+        i, j = edge
+        weights[i, j] = weights[j, i] = weight
     end
     weights
 end
@@ -80,7 +79,8 @@ min_path(weights)
 max_path(weights)
 
 begin
+    GC.gc()
     Profile.Allocs.clear()
-    Profile.Allocs.@profile sample_rate=1 min_path(weights)
+    Profile.Allocs.@profile sample_rate=1 max_path(weights)
     PProf.Allocs.pprof()
 end
