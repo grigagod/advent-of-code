@@ -49,9 +49,7 @@ for (_path, filler, comparator, aggregator) in (
                 ht[newnode] = 0
                 push!(v, newnode)
             end
-            cnt = 0
             for node in v
-                cnt += 1
                 for child in 0:n-1
                     2^child & node.visited != 0 && continue
                     newcost = ht[node] + weights[child+1, node.current+1]
