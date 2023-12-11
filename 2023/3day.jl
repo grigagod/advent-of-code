@@ -1,4 +1,4 @@
-src = read("3in.txt",String)
+src = read("3inp.txt",String)
 n = count("\n", src) + 1
 m = findfirst('\n', src) - 1
 mat = Matrix{Char}(undef, m, n)

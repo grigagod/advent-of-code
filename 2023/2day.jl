@@ -1,39 +1,35 @@
-# 12 red cubes, 13 green cubes, and 14 blue cubes
-rules = Dict("red"=>12, "green"=>13, "blue"=>14)
+ridx = r"Game (\d+):"
+rround = r"((?: \d+ \w+,?)+);?"
+rdraw = r"(?<num>\d+) (?<color>\w+)"
 
-test = "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green"
+test = "Game 11: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green"
 
-# cube -> set -> game
-isvalidCube(cube) = cube.count <= rules[cube.color]
+limits = Dict("red"=>12,"green"=>13,"blue"=>14)
 
-function parseCube(str) 
-    splitted = split(str)
-    return (count=parse(Int, splitted[begin]),color=splitted[end])
+function checkgame(line)
+    idx = parse(Int, match(ridx, line)[1])
+    for round in eachmatch(rround, line)
+        for draw in eachmatch(rdraw, round[1])
+            limits[draw["color"]] < parse(Int, draw["num"]) && return 0
+        end
+    end
+    return idx
 end
 
-isvalidSet(set) = all(isvalidCube, set)
-
-parseSet(set) = parseCube.(split(set, ","))
-
-parseSets(sets) = parseSet.(split(sets, ";"))
-
-isvalidGame(game) = all(isvalidSet, game)
-
-parseGame(line) = parseSets(split(line, ":")[end])
-
-function calculate(src) 
-    splitted = split(src, ":")
-    id = parse(Int, split(splitted[begin])[end])
-    game = parseGame(splitted[end])
-    # return isvalidGame(game) ? id : 0
-    # pt2
-    reduce(*, [maximum(map(cube -> cube.color == key ? cube.count : 0 , reduce(vcat,game))) for key in keys(rules)])
+function prodgame(line)
+    r = g = b = 1
+    for round in eachmatch(rround, line)
+        for draw in eachmatch(rdraw, round[1])
+            if draw["color"] == "red"
+                r = max(r, parse(Int, draw["num"]))
+            elseif draw["color"] == "green"
+                g = max(g, parse(Int, draw["num"]))
+            else
+                b = max(b, parse(Int, draw["num"]))
+            end
+        end
+    end
+    return r*g*b
 end
 
-sum(calculate, eachline(stdin)) |> println
-
-#rr = r"Game (\d+): (.*;?)+"
-
-#function parseline(line)
-#    data = split(line, ':')
-#    idx = 
+sum(prodgame, eachline(stdin)) |> println
