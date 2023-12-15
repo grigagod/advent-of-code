@@ -35,10 +35,12 @@ end
 
 count_variants(tup::Tuple{T1,T2}) where {T1,T2} = count_variants(tup...)
 
+regexs = Dict{Int,Regex}(i => Regex("[#?]{$i}([?.]|\$)") for i in 1:50)
+
 @memoize function count_variants(str, seqs)::Int
     if !isempty(seqs)
         len = seqs[begin]
-        rexp = Regex("[#?]{$(len)}([?.]|\$)")
+        rexp = regexs[len]::Regex
         #fistoct = something(findfirst('#',str), length(str))
         #stopind = min(fistoct + len, length(str))
         matches = findall(rexp, str; overlap=true)
