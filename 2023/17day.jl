@@ -24,9 +24,8 @@ function minpath(mat, min=1,max=3)
     pq = PriorityQueue{Tuple{CartesianIndex{2}, CartesianIndex{2}, Int64}, Int64}()
     enqueue!(pq, (src, CartesianIndex(0, 0), 0), 0)
     while !isempty(pq)
-        key, val = peek(pq)
+        key, val = dequeue_pair!(pq)
         pos, dir, n = key
-        dequeue!(pq)
         if pos == dst && n >= min
             return val
         end
