@@ -1,2 +1,2 @@
 # advent-of-code
-Not perfect Advent of code solutions
+Advent of code solutions
